@@ -22,6 +22,8 @@ class Idea < ActiveRecord::Base
                     :additional_collecting_service_urls,  # using !!! as a separator between multiple urls
                     :target_count, :updated_content_at
 
+  attr_accessor :impression_gp_count
+
   has_many :comments, as: :commentable
   has_many :votes
   has_many :articles
@@ -117,6 +119,10 @@ class Idea < ActiveRecord::Base
     # votes.group(:option).count   # => returns counts like:  {0=>37, 1=>45}
     {0 => vote_against_count, 1 => vote_for_count}
   end
+
+  def successful_proposal?
+    (self.signatures.where(state: "signed").count + self.additional_signatures_count) >= 50000
+  end
   
   def signatures_per_day
     signatures_count = signatures.where(state: "signed").count
@@ -131,5 +137,19 @@ class Idea < ActiveRecord::Base
     ended     = collecting_ended   ||
       (collecting_end_date && collecting_end_date < today_date)
     started and (not ended) and collecting_in_service and state == "proposal"
+  end
+
+  def stats
+    @stats ||= begin
+      for_count = self.vote_counts[1] || 0
+      against_count = self.vote_counts[0] || 0
+      comment_count = self.comments.count()
+      total = for_count + against_count
+      for_portion = (for_count > 0 ? for_count / total.to_f : 0.0)
+      against_portion = (against_count > 0 ? against_count / total.to_f : 0.0)
+      for_ = sprintf("%2.0f%%", for_portion * 100.0)
+      against_ = sprintf("%2.0f%%", against_portion * 100.0)
+      [for_portion, for_, against_portion, against_]
+    end
   end
 end

@@ -2,7 +2,6 @@ AvoinMinisterio::Application.routes.draw do
 
   resource :profile, :except => [:new, :create, :destroy]  
   resource :citizen, :only => [:edit, :update]
-
   match "/ideas/:id/vote/:vote"                       => "vote#vote",                     as: :vote_idea
 
   match "/ideas/:id/service_selection"                => "signatures#service_selection",      as: :signature_idea_service_selection
@@ -31,6 +30,12 @@ AvoinMinisterio::Application.routes.draw do
   match "/signatures/:id/paid_canceling/:servicename"   => "signatures#paid_canceling"
   match "/signatures/:id/paid_rejecting/:servicename"   => "signatures#paid_rejecting"
 
+  match "/kartta" => "locations#map"
+  match "/osoitteet" => "locations#addresses"
+
+  match '/conversations/inbox' => 'conversations#show_inbox'
+  match '/conversations/sentbox' => 'conversations#show_sentbox'
+  match '/conversations/trash' => 'conversations#show_trash'
 
   match "/ideat/haku" => "ideas#search"
   get "ideas/vote_flow"
@@ -51,6 +56,16 @@ AvoinMinisterio::Application.routes.draw do
   resources :articles do
     resources :comments
   end
+  
+  get '/get_participants.json', to: 'conversations#get_participants'
+
+  resources :conversations, only: [:index, :show, :new, :create] do
+    post :reply,   on: :member
+    get :trash,    on: :member
+    get :untrash,  on: :member
+  end
+
+  resources :locations
 
   devise_for :administrators
   
@@ -87,6 +102,7 @@ AvoinMinisterio::Application.routes.draw do
       get "lock",       on: :member
       get "unlock",     on: :member
     end
+    resources :locations
     resources :changelogs
     resources :expert_suggestions
     root to: "admin/ideas#index"
